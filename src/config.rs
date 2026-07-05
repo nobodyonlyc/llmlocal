@@ -8,6 +8,7 @@ pub struct Config {
     /// relevant context; below this, RAG reports insufficient context instead
     /// of answering from noise.
     pub min_score: f32,
+    pub server_port: u16,
 }
 
 impl Config {
@@ -18,6 +19,7 @@ impl Config {
             default_top_k: env_or("DEFAULT_TOP_K", "5").parse().unwrap_or(5),
             chunk_size: env_or("CHUNK_SIZE", "800").parse().unwrap_or(800),
             min_score: env_or("MIN_SCORE", "0.45").parse().unwrap_or(0.45),
+            server_port: env_or("SERVER_PORT", "3000").parse().unwrap_or(3000),
         }
     }
 }

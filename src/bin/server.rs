@@ -12,6 +12,7 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
     let config = Config::from_env();
+    let port = config.server_port;
     let store = Store::connect(&config.qdrant_url)?;
     store.ensure_collection(llmlocal::embed::DENSE_DIM).await?;
 
@@ -30,8 +31,9 @@ async fn main() -> Result<()> {
     llmlocal::router::warm(&state)?;
 
     let app = llmlocal::api::build_router(state);
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
-    tracing::info!("listening on http://127.0.0.1:3000");
+    let addr = format!("127.0.0.1:{port}");
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    tracing::info!("listening on http://{addr}");
     axum::serve(listener, app).await?;
 
     Ok(())
