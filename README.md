@@ -57,6 +57,8 @@ other containers' service DNS names instead of `127.0.0.1`.
 - `POST /v1/ingest` — multipart file upload, chunks + embeds + stores it.
 - `POST /v1/rag/query` — `{"query": "..."}` → `{"answer": "...", "sources": [...]}`.
 - `POST /v1/classify` — `{"text": "...", "labels": ["a", "b"]}` → `{"label": "a"}`.
+- `POST /v1/comments/classify` — classifies one story comment into sentiment, intent,
+  strength, confidence, and whether it is a story-quality signal.
 - `POST /v1/extract` — `{"text": "...", "schema": {...}}` → JSON matching the schema.
 - `POST /v1/route` — `{"text": "...", "labels": [...]?, "schema": {...}?}` → dispatches to
   the above based on an embedding fast path with an LLM function-calling fallback; returns

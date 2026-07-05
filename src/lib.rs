@@ -2,6 +2,7 @@
 
 pub mod api;
 pub mod classify;
+pub mod comment_classify;
 pub mod config;
 pub mod embed;
 pub mod extract;

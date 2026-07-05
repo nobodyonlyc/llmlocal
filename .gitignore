@@ -3,3 +3,6 @@
 .local/
 .fastembed_cache/
 .claude/settings.local.json
+tmp/
+__pycache__/
+.codegraph/

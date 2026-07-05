@@ -1,4 +1,4 @@
-@host = http://127.0.0.1:3000
+@host = https://zrikit.site
 
 ### Health check (process alive)
 GET {{host}}/healthz HTTP/1.1
@@ -33,6 +33,17 @@ Content-Type: application/json
 {
   "text": "The invoice total is $532.10 and is due on 2026-08-01.",
   "labels": ["invoice", "resume", "contract", "email"]
+}
+
+### Classify story comment
+POST {{host}}/v1/comments/classify HTTP/1.1
+Content-Type: application/json
+
+{
+  "comment_id": "cmt-1",
+  "story_id": "story-9",
+  "chapter_id": "chapter-3",
+  "text": "Truyen hay, main thong minh, cang doc cang cuon."
 }
 
 ### Extract structured data

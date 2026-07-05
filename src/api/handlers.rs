@@ -1,12 +1,13 @@
 use crate::classify::{self, ClassifyRequest, ClassifyResponse};
+use crate::comment_classify::{self, CommentClassifyRequest, CommentClassifyResponse};
 use crate::extract::{self, ExtractRequest};
 use crate::rag;
 use crate::router;
 use crate::state::AppState;
+use axum::Json;
 use axum::extract::{Multipart, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
@@ -69,6 +70,14 @@ pub async fn classify(
     Json(req): Json<ClassifyRequest>,
 ) -> Result<Json<ClassifyResponse>, ApiError> {
     let response = classify::classify(&state, req).await?;
+    Ok(Json(response))
+}
+
+pub async fn classify_comment(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CommentClassifyRequest>,
+) -> Result<Json<CommentClassifyResponse>, ApiError> {
+    let response = comment_classify::classify_comment(&state, req).await?;
     Ok(Json(response))
 }
 
