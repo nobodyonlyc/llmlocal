@@ -1,4 +1,5 @@
 version: "3.8"
+
 services:
   qdrant:
     image: docker.io/qdrant/qdrant:v1.18.2
@@ -7,5 +8,52 @@ services:
       - "127.0.0.1:6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
+
+  # CPU by default; deploy/podman-compose.gpu.yml overrides image/command/devices
+  # for CUDA. Selected automatically by scripts/dev-up.sh based on GPU detection.
+  # The image ships curl, so the entrypoint downloads the GGUF into the volume
+  # on first run instead of using a separate init container (podman-compose's
+  # `service_completed_successfully` dependency condition misbehaves on repeat
+  # `up` runs once the one-shot container has already exited).
+  llama-server:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - models:/models
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        MODEL=/models/Qwen3-8B-Q4_K_M.gguf
+        if [ ! -f "$$MODEL" ]; then
+          echo "Downloading Qwen3-8B-Q4_K_M.gguf (~4.7GB)..."
+          curl -fL -o "$$MODEL.tmp" "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf"
+          mv "$$MODEL.tmp" "$$MODEL"
+        fi
+        exec /app/llama-server -m "$$MODEL" --host 0.0.0.0 --port 8080 -ngl 0 -c 8192 --parallel 2 -cb --jinja
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      - qdrant
+      - llama-server
+    environment:
+      LLAMA_SERVER_URL: http://llama-server:8080
+      QDRANT_URL: http://qdrant:6334
+      DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
+      CHUNK_SIZE: ${CHUNK_SIZE:-800}
+      SERVER_PORT: "3000"
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-3000}:3000"
+    volumes:
+      - fastembed_cache:/data/fastembed_cache
+    restart: unless-stopped
+
 volumes:
   qdrant_data:
+  models:
+  fastembed_cache:

@@ -1,0 +1,89 @@
+@host = http://127.0.0.1:3000
+
+### Health check (process alive)
+GET {{host}}/healthz HTTP/1.1
+
+### Readiness check (llama-server + qdrant reachable)
+GET {{host}}/readyz HTTP/1.1
+
+### Ingest a document (multipart file upload)
+POST {{host}}/v1/ingest HTTP/1.1
+Content-Type: multipart/form-data; boundary=ingestBoundary
+
+--ingestBoundary
+Content-Disposition: form-data; name="file"; filename="sample.txt"
+Content-Type: text/plain
+
+Rust is a systems programming language focused on safety, speed, and concurrency.
+It achieves memory safety without a garbage collector via its ownership system.
+--ingestBoundary--
+
+### RAG query
+POST {{host}}/v1/rag/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "query": "What is Rust known for?"
+}
+
+### Classify text
+POST {{host}}/v1/classify HTTP/1.1
+Content-Type: application/json
+
+{
+  "text": "The invoice total is $532.10 and is due on 2026-08-01.",
+  "labels": ["invoice", "resume", "contract", "email"]
+}
+
+### Extract structured data
+POST {{host}}/v1/extract HTTP/1.1
+Content-Type: application/json
+
+{
+  "text": "Invoice #4471, total $532.10, due 2026-08-01, billed to Acme Corp.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "invoice_number": { "type": "string" },
+      "total": { "type": "number" },
+      "due_date": { "type": "string" },
+      "customer": { "type": "string" }
+    },
+    "required": ["invoice_number", "total", "due_date", "customer"]
+  }
+}
+
+### Route: classify path (labels provided)
+POST {{host}}/v1/route HTTP/1.1
+Content-Type: application/json
+
+{
+  "text": "The invoice total is $532.10 and is due on 2026-08-01.",
+  "labels": ["invoice", "resume", "contract", "email"]
+}
+
+### Route: extract path (schema provided)
+POST {{host}}/v1/route HTTP/1.1
+Content-Type: application/json
+
+{
+  "text": "Invoice #4471, total $532.10, due 2026-08-01, billed to Acme Corp.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "invoice_number": { "type": "string" },
+      "total": { "type": "number" },
+      "due_date": { "type": "string" },
+      "customer": { "type": "string" }
+    },
+    "required": ["invoice_number", "total", "due_date", "customer"]
+  }
+}
+
+### Route: RAG fallback path (no labels/schema)
+POST {{host}}/v1/route HTTP/1.1
+Content-Type: application/json
+
+{
+  "text": "What is Rust known for?"
+}

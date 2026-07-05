@@ -1,20 +1,34 @@
 #!/usr/bin/env bash
-# Starts the local dev stack: llama-server (native, GPU via Vulkan) in the
-# background, and Qdrant via podman-compose.
+# Brings up the full llmlocal stack in containers: Qdrant, llama-server
+# (GPU/CUDA if available, CPU otherwise), and the API server. Nothing runs
+# natively on the host.
 set -euo pipefail
 
-BIN_DIR="$HOME/.cache/llmlocal/bin"
-MODEL_DIR="$HOME/.cache/llmlocal/models"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COMPOSE_BASE="$REPO_DIR/deploy/podman-compose.yml"
+COMPOSE_GPU="$REPO_DIR/deploy/podman-compose.gpu.yml"
 
-podman-compose -f "$REPO_DIR/deploy/podman-compose.yml" up -d
+if command -v podman-compose >/dev/null 2>&1; then
+  COMPOSE=(podman-compose)
+elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  COMPOSE=(docker compose)
+else
+  echo "error: need podman-compose or 'docker compose' on PATH" >&2
+  exit 1
+fi
 
-"$BIN_DIR/llama-server" \
-  -m "$MODEL_DIR/Qwen3-8B-Q4_K_M.gguf" \
-  --host 127.0.0.1 --port 8080 \
-  -ngl 999 -c 8192 --parallel 2 -cb --jinja \
-  > /tmp/llama-server.log 2>&1 &
+MODE="$("$REPO_DIR/scripts/detect-gpu.sh")"
 
-echo "llama-server starting in background (PID $!), logs at /tmp/llama-server.log"
-echo "Qdrant: http://127.0.0.1:6333"
-echo "llama-server: http://127.0.0.1:8080 (wait a few seconds for model load)"
+if [ "$MODE" = "gpu" ]; then
+  echo "GPU detected (nvidia-smi + CDI spec present) -> running llama-server on CUDA"
+  "${COMPOSE[@]}" -f "$COMPOSE_BASE" -f "$COMPOSE_GPU" up -d --build
+else
+  echo "No usable GPU found (missing driver or nvidia-container-toolkit CDI spec) -> running llama-server on CPU"
+  echo "See README.md for how to enable GPU passthrough."
+  "${COMPOSE[@]}" -f "$COMPOSE_BASE" up -d --build
+fi
+
+echo
+echo "Qdrant:       http://127.0.0.1:6333"
+echo "llama-server: http://127.0.0.1:8080 (wait for model load on first run)"
+echo "API:          http://127.0.0.1:${API_HOST_PORT:-3000}"

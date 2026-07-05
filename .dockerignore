@@ -1,0 +1,10 @@
+target/
+.git/
+.claude/
+.fastembed_cache/
+data/
+deploy/
+scripts/
+*.md
+.env
+.env.example

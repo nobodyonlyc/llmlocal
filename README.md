@@ -5,28 +5,43 @@ See `SPEC.md` for the architecture and rationale.
 
 ## Stack
 
-- **API/orchestration**: Rust (axum + tokio)
-- **Inference**: `llama-server` (llama.cpp), native host process, Vulkan GPU backend
+- **API/orchestration**: Rust (axum + tokio), containerized
+- **Inference**: `llama-server` (llama.cpp), containerized — CUDA image if a GPU is
+  usable, CPU image otherwise
 - **Model**: Qwen3-8B-Instruct, GGUF Q4_K_M
 - **Embeddings**: BAAI/bge-m3, in-process via `fastembed-rs` (CPU-only)
-- **Vector store**: Qdrant, via podman-compose
+- **Vector store**: Qdrant, containerized
+
+Everything runs in containers (podman-compose, or `docker compose` if you have
+Docker instead) — nothing is installed or run natively on the host.
 
 ## Setup
 
-1. Download the model and inference binary:
-   ```
-   ./scripts/download-models.sh
-   ```
-2. Start the dev stack (llama-server + Qdrant):
-   ```
-   ./scripts/dev-up.sh
-   ```
-3. Run the API server:
-   ```
-   cargo run --bin server
-   ```
-   Listens on `http://127.0.0.1:3000`. Config is read from environment variables
-   (see `.env.example`); copy it to `.env` to override defaults.
+```
+./scripts/dev-up.sh
+```
+
+This detects whether an NVIDIA GPU is usable from containers and brings up the
+whole stack (Qdrant, llama-server, API) accordingly:
+
+- **GPU path**: requires the `nvidia-container-toolkit` package and a generated
+  CDI spec. One-time setup:
+  ```
+  sudo pacman -S --needed nvidia-container-toolkit   # or your distro's equivalent
+  sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+  ```
+  `scripts/detect-gpu.sh` checks for `nvidia-smi` plus that CDI spec; if both
+  are present, `llama-server` runs on the `server-cuda` image with the model
+  fully offloaded to VRAM.
+- **CPU path**: used automatically if the above isn't set up — `llama-server`
+  runs on the `server` (CPU) image instead. Slower, but correct.
+
+The GGUF model (~4.7GB) downloads automatically into a named volume on first
+run. The API listens on `http://127.0.0.1:3000` (override the host port with
+`API_HOST_PORT`). Config is read from environment variables (see
+`.env.example`); those defaults are for running the API natively during
+development (`cargo run --bin server`) — the containerized `api` service gets
+its config from `deploy/podman-compose.yml` directly.
 
 ## CLI
 
