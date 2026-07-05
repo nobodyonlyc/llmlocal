@@ -37,11 +37,13 @@ whole stack (Qdrant, llama-server, API) accordingly:
   runs on the `server` (CPU) image instead. Slower, but correct.
 
 The GGUF model (~4.7GB) downloads automatically into a named volume on first
-run. The API listens on `http://127.0.0.1:3000` (override the host port with
-`API_HOST_PORT`). Config is read from environment variables (see
-`.env.example`); those defaults are for running the API natively during
-development (`cargo run --bin server`) — the containerized `api` service gets
-its config from `deploy/podman-compose.yml` directly.
+run. The API listens on `http://127.0.0.1:3000` by default — set `SERVER_PORT`
+in `.env` to change it (used for both the host port mapping and the port the
+containerized `api` service listens on internally). The other variables in
+`.env`/`.env.example` (`LLAMA_SERVER_URL`, `QDRANT_URL`, etc.) only apply when
+running the API natively (`cargo run --bin server`) — the containerized `api`
+service gets those from `deploy/podman-compose.yml` directly, pointed at the
+other containers' service DNS names instead of `127.0.0.1`.
 
 ## CLI
 

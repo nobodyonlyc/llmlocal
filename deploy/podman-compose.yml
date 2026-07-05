@@ -46,9 +46,9 @@ services:
       QDRANT_URL: http://qdrant:6334
       DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
       CHUNK_SIZE: ${CHUNK_SIZE:-800}
-      SERVER_PORT: "3000"
+      SERVER_PORT: ${SERVER_PORT:-3000}
     ports:
-      - "127.0.0.1:${API_HOST_PORT:-3000}:3000"
+      - "127.0.0.1:${SERVER_PORT:-3000}:${SERVER_PORT:-3000}"
     volumes:
       - fastembed_cache:/data/fastembed_cache
     restart: unless-stopped
